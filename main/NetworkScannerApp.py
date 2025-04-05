@@ -313,8 +313,8 @@ class ScannerApp:
         """Set up ttk styles"""
         style = ttk.Style()
         style.configure("TButton", padding=6, relief="flat", background="#ccc")
-        style.configure("Accent.TButton", background="#007bff", foreground="white")
-        style.configure("Danger.TButton", background="#dc3545", foreground="white")
+        style.configure("Accent.TButton", background="#007bff", foreground="black")
+        style.configure("Danger.TButton", background="#dc3545", foreground="black")
         style.map('Accent.TButton', background=[('active', '#0069d9')])
         style.map('Danger.TButton', background=[('active', '#c82333')])
     
