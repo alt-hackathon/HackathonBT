@@ -35,7 +35,7 @@ vulnerable_services = {
         "recommendation": "Redirect HTTP to HTTPS using SSL certificates."
     }
 }
-
+#added in above, working on compatability with below
 def is_vulnerable(service_name):
     """Check if a service is known to be vulnerable"""
     return service_name.lower() in vulnerable_services

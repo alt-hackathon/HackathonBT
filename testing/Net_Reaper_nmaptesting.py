@@ -31,9 +31,41 @@ class NetworkScanner:
         9000   # Common IoT web interface
     ]
     #Vulnerable services IoT devices should not have open
-    VULNERABLE_SERVICES = [
-
-    ]
+    # Vulnerable services with explanations and fixes
+    vulnerable_services = {
+        "telnet": {
+            "reason": "Transmits data in plaintext, allowing attackers to intercept credentials.",
+            "recommendation": "Disable Telnet and use SSH instead for secure remote access."
+        },
+        "ftp": {
+            "reason": "FTP sends data unencrypted, exposing usernames and passwords.",
+            "recommendation": "Use SFTP or FTPS instead for secure file transfers."
+        },
+        "smb": {
+            "reason": "Older versions of SMB are vulnerable to remote code execution (e.g. EternalBlue).",
+            "recommendation": "Update to SMBv3 and block SMB traffic over the internet."
+        },
+        "rdp": {
+            "reason": "RDP is a common target for brute-force and ransomware attacks.",
+            "recommendation": "Use a VPN and enable Network Level Authentication (NLA)."
+        },
+        "vnc": {
+            "reason": "VNC is often exposed without encryption or strong passwords.",
+            "recommendation": "Tunnel VNC over SSH or use a secure alternative like Guacamole with MFA."
+        },
+        "mysql": {
+            "reason": "Exposing MySQL to the network can allow database access if not properly secured.",
+            "recommendation": "Bind MySQL to localhost and use firewalls to restrict access."
+        },
+        "mongodb": {
+            "reason": "Old MongoDB setups often have no authentication, allowing public read/write access.",
+            "recommendation": "Enable authentication and firewall off external access."
+        },
+        "http": {
+            "reason": "Unencrypted HTTP can leak sensitive data and session tokens.",
+            "recommendation": "Redirect HTTP to HTTPS using SSL certificates."
+        }
+    }
     # Common IoT vulnerabilities to check
     VULNERABILITIES = [
         {
