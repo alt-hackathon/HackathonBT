@@ -244,9 +244,9 @@ class NetworkScanner:
             else:
                 # Single IP
                 ips = [ip_range]
-            
-            total_ips = len(ips)
-            
+                #follow back to ip range
+            total_ips = len(ips) #CHANGE: this should just be of ip addresses gathered through arp
+            #follow back to 'ips'
             if self.log_callback:
                 self.log_callback(f"Starting scan of {total_ips} IP addresses...")
             
