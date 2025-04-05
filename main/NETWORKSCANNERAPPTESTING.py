@@ -85,7 +85,7 @@ class NetworkScanner:
             s.close()
         return local_ip
 
-    def get_active_ips(ip_range): #Perform ARP scan to find active IPs in the network."""
+    def get_active_ips(self, ip_range): #Perform ARP scan to find active IPs in the network."""
         arp = ARP(pdst=ip_range)
         ether = Ether(dst="ff:ff:ff:ff:ff:ff")
         packet = ether / arp
@@ -249,7 +249,7 @@ class NetworkScanner:
 
         try:
             # 🔍 Use ARP to find active devices only
-            ips = get_active_ips(ip_range)
+            ips = self.get_active_ips(ip_range)
             total_ips = len(ips)
 
             if self.log_callback:
