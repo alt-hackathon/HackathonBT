@@ -253,7 +253,7 @@ class NetworkScanner:
             total_ips = len(ips)
 
             if self.log_callback:
-                self.log_callback(f"Found {total_ips} active devices. Starting vulnerability scan...")
+                self.log_callback(f"Found {total_ips} active devices.\n\n{ips}\n\nStarting vulnerability scan...")
 
             start_time = time.time()
             completed = 0
@@ -288,262 +288,99 @@ class NetworkScanner:
         """Stop the current scan"""
         self.scanning = False
 
+# Make scanner app more user-friendly
 class ScannerApp:
-    """GUI application for the network scanner"""
-    
+    """GUI application for the Network Scanner"""
+
     def __init__(self, root):
-        """Initialize the GUI application"""
         self.root = root
-        self.root.title("IoT Network Security Scanner")
-        self.root.geometry("900x600")
-        self.root.minsize(800, 500)
-        
+        self.root.title("Network Scanner")
         self.scanner = NetworkScanner()
-        self.scan_thread = None
-        
-        self.create_widgets()
-        self.setup_styles()
-        
-        # Get the local IP to suggest a default scan range
-        local_ip = self.scanner.get_local_ip()
-        default_range = ".".join(local_ip.split(".")[:3]) + ".0/24"
-        self.ip_range_var.set(default_range)
-        
-        self.log(f"Your IP address appears to be: {local_ip}")
-        self.log("Ready to scan. Enter an IP range and click 'Start Scan'.")
-        self.log("IMPORTANT: Only scan networks you own or have permission to scan.")
-    
-    def setup_styles(self):
-        """Set up ttk styles"""
-        style = ttk.Style()
-        style.configure("TButton", padding=6, relief="flat", background="#ccc")
-        style.configure("Accent.TButton", background="#007bff", foreground="black")
-        style.configure("Danger.TButton", background="#dc3545", foreground="black")
-        style.map('Accent.TButton', background=[('active', '#0069d9')])
-        style.map('Danger.TButton', background=[('active', '#c82333')])
-    
-    def create_widgets(self):
-        """Create the GUI widgets"""
-        # Main frame
-        main_frame = ttk.Frame(self.root, padding="10")
-        main_frame.pack(fill=tk.BOTH, expand=True)
-        
-        # Top frame for controls
-        top_frame = ttk.Frame(main_frame)
-        top_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        # IP range input
-        ttk.Label(top_frame, text="IP Range:").pack(side=tk.LEFT, padx=(0, 5))
-        self.ip_range_var = tk.StringVar()
-        ip_entry = ttk.Entry(top_frame, textvariable=self.ip_range_var, width=20)
-        ip_entry.pack(side=tk.LEFT, padx=(0, 10))
-        
-        # Scan buttonh
-        self.scan_button = ttk.Button(top_frame, text="Start Scan", style="Accent.TButton", command=self.start_scan)
-        self.scan_button.pack(side=tk.LEFT, padx=(0, 5))
-        
-        # Stop button
-        self.stop_button = ttk.Button(top_frame, text="Stop", style="Danger.TButton", command=self.stop_scan, state=tk.DISABLED)
-        self.stop_button.pack(side=tk.LEFT)
-        
-        # Progress bar
-        ttk.Label(top_frame, text="Progress:").pack(side=tk.LEFT, padx=(10, 5))
-        self.progress_var = tk.DoubleVar()
-        self.progress_bar = ttk.Progressbar(top_frame, variable=self.progress_var, length=150)
-        self.progress_bar.pack(side=tk.LEFT, padx=(0, 5))
-        
-        self.progress_label = ttk.Label(top_frame, text="0%")
-        self.progress_label.pack(side=tk.LEFT)
-        
-        # Notebook for results and logs
-        self.notebook = ttk.Notebook(main_frame)
-        self.notebook.pack(fill=tk.BOTH, expand=True)
-        
-        # Results tab
-        results_frame = ttk.Frame(self.notebook)
-        self.notebook.add(results_frame, text="Results")
-        
-        # Results tree view
-        columns = ("ip", "hostname", "device_type", "open_ports", "vulnerabilities")
-        self.results_tree = ttk.Treeview(results_frame, columns=columns, show="headings")
-        
-        # Define headings
-        self.results_tree.heading("ip", text="IP Address")
-        self.results_tree.heading("hostname", text="Hostname")
-        self.results_tree.heading("device_type", text="Device Type")
-        self.results_tree.heading("open_ports", text="Open Ports")
-        self.results_tree.heading("vulnerabilities", text="Vulnerabilities")
-        
-        # Define columns
-        self.results_tree.column("ip", width=100)
-        self.results_tree.column("hostname", width=150)
-        self.results_tree.column("device_type", width=120)
-        self.results_tree.column("open_ports", width=150)
-        self.results_tree.column("vulnerabilities", width=150)
-        
-        # Scrollbar for results
-        results_scroll = ttk.Scrollbar(results_frame, orient=tk.VERTICAL, command=self.results_tree.yview)
-        self.results_tree.configure(yscrollcommand=results_scroll.set)
-        
-        # Pack the results tree and scrollbar
-        self.results_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        results_scroll.pack(side=tk.RIGHT, fill=tk.Y)
-        
-        # Bind double-click event to show details
-        self.results_ll=tk.Y
-        
-        # Bind double-click event to show details
-        self.results_tree.bind("<Double-1>", self.show_device_details)
-        
-        # Log tab
-        log_frame = ttk.Frame(self.notebook)
-        self.notebook.add(log_frame, text="Log")
-        
-        # Log text area
-        self.log_text = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD)
-        self.log_text.pack(fill=tk.BOTH, expand=True)
-        
-        # Details frame
-        self.details_frame = ttk.LabelFrame(main_frame, text="Device Details", padding="10")
-        self.details_frame.pack(fill=tk.X, pady=10)
-        
-        # Details text
-        self.details_text = scrolledtext.ScrolledText(self.details_frame, wrap=tk.WORD, height=10)
-        self.details_text.pack(fill=tk.BOTH, expand=True)
-        
-        # Set callbacks
+        self.scanner.log_callback = self.log_message
         self.scanner.progress_callback = self.update_progress
-        self.scanner.log_callback = self.log
-    
+
+        # Create GUI components
+        self.create_widgets()
+
+    def create_widgets(self):
+        """Create the GUI layout"""
+        # Network Range Input
+        frame = ttk.Frame(self.root, padding="10")
+        frame.grid(row=0, column=0, sticky="nsew")
+
+        ttk.Label(frame, text="Network Range (CIDR):").grid(row=0, column=0, sticky="w")
+        self.network_entry = ttk.Entry(frame, width=30)
+        self.network_entry.grid(row=0, column=1, sticky="w")
+        self.network_entry.insert(0, f"{self.scanner.get_local_ip()}/24")
+
+        # Buttons
+        self.scan_button = ttk.Button(frame, text="Start Scan", command=self.start_scan)
+        self.scan_button.grid(row=0, column=2, padx=5)
+
+        self.stop_button = ttk.Button(frame, text="Stop Scan", command=self.stop_scan, state="disabled")
+        self.stop_button.grid(row=0, column=3, padx=5)
+
+        # Progress Bar
+        self.progress = ttk.Progressbar(frame, length=400, mode="determinate")
+        self.progress.grid(row=1, column=0, columnspan=4, pady=10)
+
+        # Results Table
+        self.tree = ttk.Treeview(self.root, columns=("IP", "Hostname", "MAC", "Vendor", "Device Type", "Vulnerabilities"), show="headings")
+        self.tree.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+
+        for col in self.tree["columns"]:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=150)
+
+        # Log Output
+        self.log_output = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, height=10)
+        self.log_output.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
+
     def start_scan(self):
-        """Start the network scan in a separate thread"""
-        ip_range = self.ip_range_var.get().strip()
-        if not ip_range:
-            messagebox.showerror("Error", "Please enter an IP range to scan.")
-            return
-        
-        # Clear previous results
-        for item in self.results_tree.get_children():
-            self.results_tree.delete(item)
-        
-        self.details_text.delete(1.0, tk.END)
-        self.progress_var.set(0)
-        self.progress_label.config(text="0%")
-        
-        # Update UI
-        self.scan_button.config(state=tk.DISABLED)
-        self.stop_button.config(state=tk.NORMAL)
-        
-        # Start scan in a separate thread
-        self.scan_thread = threading.Thread(target=self.run_scan, args=(ip_range,))
-        self.scan_thread.daemon = True
-        self.scan_thread.start()
-    
+        """Start the network scan"""
+        ip_range = self.network_entry.get()
+        self.scan_button.config(state="disabled")
+        self.stop_button.config(state="normal")
+        self.log_output.delete(1.0, tk.END)
+        self.tree.delete(*self.tree.get_children())
+
+        # Run the scan in a separate thread
+        threading.Thread(target=self.run_scan, args=(ip_range,), daemon=True).start()
+
     def run_scan(self, ip_range):
-        """Run the scan in a separate thread"""
+        """Run the scan and update the GUI with results"""
         results = self.scanner.scan_network(ip_range)
-        
-        # Update UI with results
-        self.root.after(0, self.update_results, results)
-    
-    def stop_scan(self):
-        """Stop the current scan"""
-        if self.scanner.scanning:
-            self.scanner.stop_scan()
-            self.scan_button.config(state=tk.NORMAL)
-            self.stop_button.config(state=tk.DISABLED)
-    
-    def update_progress(self, progress, completed, total):
-        """Update the progress bar"""
-        self.progress_var.set(progress)
-        self.progress_label.config(text=f"{progress:.1f}% ({completed}/{total})")
-    
-    def update_results(self, results):
-        """Update the results tree with scan results"""
         for result in results:
-            vuln_count = len(result["vulnerabilities"])
-            vuln_text = f"{vuln_count} issues" if vuln_count > 0 else "Secure"
-            
-            # Add to tree view
-            item_id = self.results_tree.insert("", tk.END, values=(
+            vulnerabilities = "\n".join([f"{v['name']} ({v['severity']})" for v in result["vulnerabilities"]])
+            self.tree.insert("", "end", values=(
                 result["ip"],
                 result["hostname"],
+                result["mac"],
                 result["device_type"],
-                ", ".join(map(str, result["open_ports"])),
-                vuln_text
+                vulnerabilities
             ))
-            
-            # Set tag for vulnerable devices
-            if vuln_count > 0:
-                self.results_tree.item(item_id, tags=("vulnerable",))
-        
-        # Configure tag colors
-        self.results_tree.tag_configure("vulnerable", background="#ffcccc")
-        
-        # Update UI
-        self.scan_button.config(state=tk.NORMAL)
-        self.stop_button.config(state=tk.DISABLED)
-        
-        # Show summary
-        self.log(f"Scan completed. Found {len(results)} devices.")
-        vulnerable_count = sum(1 for r in results if r["vulnerabilities"])
-        self.log(f"Vulnerable devices: {vulnerable_count}")
-        total_vulns = sum(len(r["vulnerabilities"]) for r in results)
-        self.log(f"Total vulnerabilities: {total_vulns}")
-    
-    def show_device_details(self, event):
-        """Show details for the selected device"""
-        item_id = self.results_tree.focus()
-        if not item_id:
-            return
-        
-        # Get the IP of the selected device
-        ip = self.results_tree.item(item_id, "values")[0]
-        
-        # Find the device in results
-        device = next((r for r in self.scanner.results if r["ip"] == ip), None)
-        if not device:
-            return
-        
-        # Clear details text
-        self.details_text.delete(1.0, tk.END)
-        
-        # Add device details
-        self.details_text.insert(tk.END, f"IP Address: {device['ip']}\n")
-        self.details_text.insert(tk.END, f"Hostname: {device['hostname']}\n")
-        self.details_text.insert(tk.END, f"MAC Address: {device['mac']}\n")
-        self.details_text.insert(tk.END, f"Vendor: {device['vendor']}\n")
-        self.details_text.insert(tk.END, f"Device Type: {device['device_type']}\n")
-        self.details_text.insert(tk.END, f"Open Ports: {', '.join(map(str, device['open_ports']))}\n\n")
-        
-        # Add vulnerabilities
-        if device["vulnerabilities"]:
-            self.details_text.insert(tk.END, "Vulnerabilities:\n", "header")
-            for vuln in device["vulnerabilities"]:
-                self.details_text.insert(tk.END, f"- {vuln['name']} ", "vuln_title")
-                self.details_text.insert(tk.END, f"({vuln['severity']})\n", "vuln_severity")
-                self.details_text.insert(tk.END, f"  {vuln['description']}\n")
-                self.details_text.insert(tk.END, f"  Port: {vuln['port']}\n")
-                self.details_text.insert(tk.END, f"  Recommendation: {vuln['recommendation']}\n\n")
-        else:
-            self.details_text.insert(tk.END, "No vulnerabilities detected.\n", "secure")
-        
-        # Configure text tags
-        self.details_text.tag_configure("header", font=("TkDefaultFont", 10, "bold"))
-        self.details_text.tag_configure("vuln_title", font=("TkDefaultFont", 9, "bold"))
-        self.details_text.tag_configure("vuln_severity", foreground="red")
-        self.details_text.tag_configure("secure", foreground="green")
-    
-    def log(self, message):
-        """Add a message to the log"""
-        self.log_text.insert(tk.END, f"[{time.strftime('%H:%M:%S')}] {message}\n")
-        self.log_text.see(tk.END)
 
-def main():
-    """Main function to run the GUI application"""
+        self.scan_button.config(state="normal")
+        self.stop_button.config(state="disabled")
+
+    def stop_scan(self):
+        """Stop the ongoing scan"""
+        self.scanner.stop_scan()
+        self.scan_button.config(state="normal")
+        self.stop_button.config(state="disabled")
+
+    def update_progress(self, progress, completed, total):
+        """Update the progress bar"""
+        self.progress["value"] = progress
+        self.log_message(f"Progress: {completed}/{total} devices scanned.")
+
+    def log_message(self, message):
+        """Log messages to the output box"""
+        self.log_output.insert(tk.END, message + "\n")
+        self.log_output.see(tk.END)
+
+
+if __name__ == "__main__":
     root = tk.Tk()
     app = ScannerApp(root)
     root.mainloop()
-
-if __name__ == "__main__":
-    main()
