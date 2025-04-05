@@ -1,41 +1,32 @@
-from scapy.all import ARP, Ether, srp
-from nmap_scan.scanner import NmapScanner
+import subprocess
+import re
 
-def get_active_hosts(network_range):
-    """ARP scan to get devices that are actually present on the network."""
-    print(f"📡 Running ARP scan on {network_range} ...")
-    arp = ARP(pdst=network_range)
-    ether = Ether(dst="ff:ff:ff:ff:ff:ff")
-    packet = ether / arp
+def run_nmap_scan(target_network):
+    print(f"Scanning network: {target_network}...\n")
+    
+    try:
+        result = subprocess.check_output(['nmap', '-p', '1-1024', '--open', target_network], text=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error during nmap scan: {e}")
+        return
+    
+    current_host = None
+    open_ports = []
 
-    result = srp(packet, timeout=2, verbose=False)[0]
-
-    devices = [rcv.psrc for snd, rcv in result]
-    print(f"✅ Found {len(devices)} active device(s): {devices}")
-    return devices
-
-def scan_devices(ips):
-    """Use nmap_scan to check for open ports/services."""
-    scanner = NmapScanner()
-
-    for ip in ips:
-        print(f"\n🔍 Scanning {ip} ...")
-        try:
-            result = scanner.scan(ip, arguments='-sS -sV')
-
-            for host in result.hosts:
-                print(f"  Host: {host.address}")
-                for port in host.ports:
-                    print(f"    ➤ {port.portid}/{port.protocol}: {getattr(port, 'name', 'unknown')} "
-                          f"{getattr(port, 'product', '')} {getattr(port, 'version', '')}")
-        except Exception as e:
-            print(f"  ❌ Error scanning {ip}: {e}")
+    for line in result.splitlines():
+        if line.startswith("Nmap scan report for"):
+            if current_host and open_ports:
+                print(f"{current_host} - Open ports: {open_ports}")
+            current_host = line.split()[-1]
+            open_ports = []
+        elif re.match(r'^\d+/tcp\s+open', line):
+            port = line.split('/')[0]
+            open_ports.append(int(port))
+    
+    # Print last host
+    if current_host and open_ports:
+        print(f"{current_host} - Open ports: {open_ports}")
 
 if __name__ == "__main__":
-    network_cidr = "192.168.1.0/24"  # Change if needed
-    active_ips = get_active_hosts(network_cidr)
-
-    if active_ips:
-        scan_devices(active_ips)
-    else:
-        print("❌ No active devices found.")
+    target_network = "192.168.1.0/24"  # Update to match your actual network
+    run_nmap_scan(target_network)
