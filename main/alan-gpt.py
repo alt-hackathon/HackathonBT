@@ -1,5 +1,6 @@
 import socket
 import subprocess
+import os
 
 def ping_sweep(network_range):
     ip_list = []
