@@ -1,19 +1,30 @@
 import subprocess
 import re
+from scapy.all import ARP, Ether, srp
 
-def run_nmap(ip_range):
+def get_alive_ips(ip_range):
+    print(f"\n[+] Performing ARP scan on {ip_range}...")
+    arp = ARP(pdst=ip_range)
+    ether = Ether(dst="ff:ff:ff:ff:ff:ff")
+    packet = ether / arp
+
+    answered, _ = srp(packet, timeout=2, verbose=0)
+    ips = [recv.psrc for _, recv in answered]
+    print(f"[+] Found {len(ips)} active devices.")
+    return ips
+
+def run_nmap(ip):
     try:
-        print(f"\nScanning {ip_range}...\n")
+        print(f"\n[+] Scanning {ip} with Nmap...")
         result = subprocess.run(
-            ['nmap', '-sS', '-Pn', ip_range],
+            ['nmap', '-sS', '-Pn', ip],
             capture_output=True,
             text=True,
             check=True
         )
         return result.stdout
     except subprocess.CalledProcessError as e:
-        print("Nmap scan failed:")
-        print(e.stderr)
+        print(f"[!] Nmap scan failed for {ip}")
         return ""
 
 def parse_nmap_output(output):
@@ -47,6 +58,12 @@ def display_results(devices):
 
 if __name__ == "__main__":
     target = input("Enter target IP range (e.g., 192.168.1.0/24): ")
-    raw_output = run_nmap(target)
-    parsed = parse_nmap_output(raw_output)
-    display_results(parsed)
+    alive_ips = get_alive_ips(target)
+    all_results = {}
+
+    for ip in alive_ips:
+        output = run_nmap(ip)
+        parsed = parse_nmap_output(output)
+        all_results.update(parsed)
+
+    display_results(all_results)
