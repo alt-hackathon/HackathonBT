@@ -7,9 +7,14 @@ def get_active_hosts(network_range):
     arp_request = ARP(pdst=network_range)
     broadcast = Ether(dst="ff:ff:ff:ff:ff:ff")
     packet = broadcast / arp_request
-    answered, _ = srp(packet, timeout=2, verbose=False)
 
-    active_ips = [res.psrc for res in answered]
+    # srp returns (answered, unanswered)
+    answered_list = srp(packet, timeout=2, verbose=False)[0]
+
+    active_ips = []
+    for sent, received in answered_list:
+        active_ips.append(received.psrc)
+
     print(f"✅ Found {len(active_ips)} active host(s): {active_ips}")
     return active_ips
 
@@ -20,31 +25,34 @@ def scan_hosts(ip_list):
 
     for ip in ip_list:
         print(f"\n🔍 Scanning host {ip} ...")
-        scanner.scan(hosts=ip, arguments='-sS -sV -T4')
+        try:
+            scanner.scan(hosts=ip, arguments='-sS -sV -T4')
 
-        if scanner[ip].state() == "up":
-            results[ip] = {}
+            if scanner[ip].state() == "up":
+                results[ip] = {}
 
-            for proto in scanner[ip].all_protocols():
-                ports = scanner[ip][proto].keys()
-                for port in sorted(ports):
-                    service = scanner[ip][proto][port]
-                    name = service.get('name', 'unknown')
-                    product = service.get('product', '')
-                    version = service.get('version', '')
-                    print(f"  - {proto.upper()} Port {port}: {name} {product} {version}")
+                for proto in scanner[ip].all_protocols():
+                    ports = scanner[ip][proto].keys()
+                    for port in sorted(ports):
+                        service = scanner[ip][proto][port]
+                        name = service.get('name', 'unknown')
+                        product = service.get('product', '')
+                        version = service.get('version', '')
+                        print(f"  - {proto.upper()} Port {port}: {name} {product} {version}")
 
-                    results[ip][port] = {
-                        'protocol': proto,
-                        'name': name,
-                        'product': product,
-                        'version': version
-                    }
+                        results[ip][port] = {
+                            'protocol': proto,
+                            'name': name,
+                            'product': product,
+                            'version': version
+                        }
+        except Exception as e:
+            print(f"❌ Failed to scan {ip}: {e}")
 
     return results
 
 if __name__ == "__main__":
-    # Update this to your subnet
+    # Change this to match your local network
     network_range = "192.168.1.0/24"
 
     active_ips = get_active_hosts(network_range)
