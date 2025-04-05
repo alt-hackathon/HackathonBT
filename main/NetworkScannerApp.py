@@ -88,7 +88,7 @@ class NetworkScanner:
         """Convert IP and CIDR to a list of IPs in that range"""
         network = ipaddress.IPv4Network(f"{ip}/{cidr}", strict=False)
         return [str(ip) for ip in network.hosts()]
-    
+
     def is_port_open(self, ip: str, port: int, timeout: float = 1.0) -> bool:
         """Check if a port is open on the target IP"""
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
